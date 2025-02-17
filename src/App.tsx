@@ -30,7 +30,7 @@ const hooks = {
   "state-bbbb": {
     use: () => {
       return useState("b")
-    }
+    },
   },
 }
 

@@ -1,38 +1,62 @@
-import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { SubscriptionContext } from "./constants";
 
-export function useHookResults(namespaces: string[] | undefined = []) {
+export function useHookResults(namespaces: string[] | undefined = []): any {
   const { subscribe, store } = useContext(SubscriptionContext);
 
-  const prevDataRef = useRef<Record<string, any>>({});
-
-  const subscription = useMemo(() => {
+  const value = namespaces.reduce((acc, namespace) => {
     return {
-      sync: (callback: VoidFunction) => {
-        const cleanups = namespaces.map((namespace) =>
-          subscribe(namespace, callback)
-        );
+      ...acc,
+      [namespace]: store[namespace]
+    }
+  }, {});
 
-        return () => {
-          cleanups.forEach((cleanup) => cleanup());
-        };
-      },
-      getSnapshot: () => {
-        namespaces.forEach((namespace) => {
-          const currentValue = store[namespace];
+  const [, setTrigger] = useState(false);
 
-          if (currentValue !== prevDataRef.current[namespace]) {
-            prevDataRef.current = {
-              ...prevDataRef.current,
-              [namespace]: currentValue,
-            };
-          }
-        });
+  useEffect(() => {
+    const cleanups = namespaces.map((namespace) =>
+      subscribe(namespace, () => setTrigger((prev) => !prev))
+    );
 
-        return prevDataRef.current;
-      },
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
     };
-  }, [namespaces, store, subscribe]);
+  }, [namespaces, subscribe])
 
-  return useSyncExternalStore(subscription.sync, subscription.getSnapshot);
+  // const prevDataRef = useRef<Record<string, any>>({});
+
+  // const subscription = useMemo(() => {
+  //   return {
+  //     sync: (callback: VoidFunction) => {
+  //       console.log('sync triggered')
+  //       const cleanups = namespaces.map((namespace) =>
+  //         subscribe(namespace, callback)
+  //       );
+
+  //       return () => {
+  //         cleanups.forEach((cleanup) => cleanup());
+  //       };
+  //     },
+  //     getSnapshot: () => {
+  //       namespaces.forEach((namespace) => {
+  //         const currentValue = store[namespace];
+
+  //         if (currentValue !== prevDataRef.current[namespace]) {
+  //           prevDataRef.current = {
+  //             ...prevDataRef.current,
+  //             [namespace]: currentValue,
+  //           };
+  //         }
+  //       });
+
+  //       return prevDataRef.current;
+  //     },
+  //   };
+  // }, [namespaces, store, subscribe]);
+  
+  // const vs = useSyncExternalStore(subscription.sync, subscription.getSnapshot);
+
+  // console.log(vs, 'vs')
+
+  return value;
 }

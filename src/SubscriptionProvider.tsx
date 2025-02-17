@@ -1,6 +1,7 @@
 import { type ReactNode, useContext, useEffect, useRef } from 'react';
 import { useHookResults } from './useHookResults';
 import { SubscriptionContext } from './constants';
+import { useDidUpdate } from './useDidUpdate';
 
 export type HookDef = {
     namespace: string;
@@ -44,13 +45,23 @@ function useHookSubscription(
 ) {
   const res = use();
   const { subscriptionMap } = useContext(SubscriptionContext);
+  const isFirstRenderRef = useRef(true);  
 
-  useEffect(() => {
+  function publish() {
     if (Array.isArray(subscriptionMap[namespace])) {
       subscriptionMap[namespace].forEach((callback) => {
         callback(res);
       });
     }
+  }
+
+  if (isFirstRenderRef.current) {
+    publish();
+    isFirstRenderRef.current = false
+  } 
+
+  useDidUpdate(() => {
+    publish()
   }, [namespace, res, subscriptionMap]);
 }
 
